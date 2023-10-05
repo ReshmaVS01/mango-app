@@ -8,6 +8,7 @@ import {
   query,
   orderBy,
   onSnapshot,
+  where, // Import the 'where' function
 } from 'firebase/firestore'; // Import Firestore functions
 import {
   ref,
@@ -64,12 +65,13 @@ const Dashboard = () => {
         setActivities(updatedActivities);
       });
 
-      // Create a reference to the "uploads" collection
-      const uploadsCollection = collection(db, 'uploads');
+      // Create a reference to the user's folder in Storage
+      const userStorageRef = ref(storage, `uploads/${userId}`);
 
-      // Create a query to order uploads by timestamp
+      // Create a query to order uploads by timestamp and filter by user ID
       const uploadsQuery = query(
-        uploadsCollection,
+        collection(db, 'uploads'),
+        where('userId', '==', userId), // Filter by the current user's UID
         orderBy('timestamp', 'desc')
       );
 
@@ -82,6 +84,7 @@ const Dashboard = () => {
             ...doc.data(),
           });
         });
+        console.log('Updated Files:', updatedFiles); // Add this line
         setUploadedFiles(updatedFiles);
       });
 
@@ -158,12 +161,12 @@ const Dashboard = () => {
       console.log('No file selected.');
       return;
     }
-
+  
     try {
-      // Upload the file to Firebase Storage
-      const storageRef = ref(storage, 'uploads/' + file.name);
+      // Upload the file to the user's folder in Firebase Storage
+      const storageRef = ref(storage, `uploads/${currentUser.uid}/${file.name}`);
       const uploadTask = uploadBytesResumable(storageRef, file);
-
+  
       uploadTask.on(
         'state_changed',
         (snapshot) => {
@@ -175,29 +178,33 @@ const Dashboard = () => {
         (error) => {
           console.error('Error uploading file:', error);
         },
-        () => {
+        async () => { // Use async here
           // File uploaded successfully, now get the download URL
-          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-            console.log('File available at', downloadURL);
-
-            // Save the download URL to Firestore or perform any other action
-            // Example:
-            db.collection('uploads').add({
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          console.log('File available at', downloadURL);
+  
+          // Save the download URL to Firestore with user-specific data
+          try {
+            await addDoc(collection(db, 'uploads'), {
               fileName: file.name,
               downloadURL: downloadURL,
               timestamp: new Date(),
-            });
-
-            // Clear the file input
-            setFile(null);
-          });
+              userId: currentUser.uid,
+            })
+            console.log('Document added successfully!');
+          } catch (error) {
+            console.error('Error adding document:', error);
+          }
+  
+          // Clear the file input
+          setFile(null);
         }
       );
     } catch (error) {
       console.error('Error uploading file:', error);
     }
   };
-
+  
   return (
     <div>
       <h2>Welcome, {displayName}!</h2>
@@ -233,13 +240,23 @@ const Dashboard = () => {
       </div>
       {/* Display uploaded files */}
       <div>
-        <h3>Uploaded Files</h3>
-        <ul>
-          {uploadedFiles.map((file) => (
-            <li key={file.id}>{file.fileName}</li>
-          ))}
-        </ul>
-      </div>
+  <h3>Uploaded Files</h3>
+  <ul>
+    {uploadedFiles.length === 0 ? (
+      <p>No files uploaded yet.</p>
+    ) : (
+      uploadedFiles.map((file) => (
+        <li key={file.id}>
+          {file.fileName} -{' '}
+          <a href={file.downloadURL} target="_blank" rel="noopener noreferrer">
+            Download
+          </a>
+        </li>
+      ))
+    )}
+  </ul>
+</div>
+
       {/* Other dashboard content */}
       <button onClick={handleLogout}>Logout</button>
     </div>
