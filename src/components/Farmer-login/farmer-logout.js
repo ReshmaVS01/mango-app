@@ -13,7 +13,7 @@ const Logout = () => {
       await auth.signOut(); // Make sure you import signOut from your Firebase setup
 
       // Redirect the user to the login page (or any other desired page)
-      navigate('/farmerlogin');
+      navigate('/farmerRegister');
     } catch (error) {
       console.error('Error logging out:', error);
       // Handle logout errors, display an error message, etc.

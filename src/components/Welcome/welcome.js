@@ -5,7 +5,8 @@ import Farmer from '../Farmer-login/farmer-login';
 const Welcome = () => {
     return (
     <>
-    <Link to="/FarmerLogin">farmer</Link>
+    <Link to="/FarmerRegister">Farmer</Link>
+    <Link to="/PackhouseRegister">Packhouse</Link>
     
     </>
     ); 

@@ -102,7 +102,7 @@ const Dashboard = () => {
       await auth.signOut();
 
       // Redirect the user to the login page
-      navigate('/farmerlogin');
+      navigate('/farmerRegister');
     } catch (error) {
       console.error('Error logging out:', error);
       // Handle logout errors, display an error message, etc.
